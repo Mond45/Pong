@@ -94,7 +94,7 @@ module counter #(
 
 endmodule
 
-module sevenSegment (
+module SevenSegment (
     input clk,
     input [3:0] d0,
     input [3:0] d1,

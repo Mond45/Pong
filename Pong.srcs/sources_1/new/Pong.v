@@ -32,8 +32,8 @@ module Pong (
     output logic [3:0] vga_r,
     output logic [3:0] vga_g,
     output logic [3:0] vga_b,
-    output logic       coll_l,
-    output logic       coll_r
+    output logic [7:0] score_l,
+    output logic [7:0] score_r
 );
 
   wire de, clk_pix, hsync, vsync;
@@ -48,15 +48,15 @@ module Pong (
       .x(x),
       .y(y)
   );
-  localparam BALL_SIZE = 8;  // ball size in pixels
-  localparam BALL_ISPX = 2;  // initial horizontal ball speed
-  localparam BALL_ISPY = 1;  // initial vertical ball speed
-  localparam PAD_HEIGHT = 72;  // paddle height in pixels
-  localparam PAD_WIDTH = 10;  // paddle width in pixels
-  localparam PAD_OFFS = 32;  // paddle distance from edge of screen in pixels
-  localparam PAD_SPY = 3;  // vertical paddle speed
+  localparam BALL_SIZE = 8;
+  localparam BALL_ISPX = 2;
+  localparam BALL_ISPY = 1;
+  localparam PAD_HEIGHT = 72;
+  localparam PAD_WIDTH = 10;
+  localparam PAD_OFFS = 32;
+  localparam PAD_SPY = 3;
 
-  localparam H_RES = 640;  // horizontal screen resolution
+  localparam H_RES = 640;
   localparam V_RES = 480;
 
   logic frame;
@@ -76,9 +76,37 @@ module Pong (
   logic [9:0] ball_spy;
   logic ball_dx, ball_dy;
 
-  logic [9:0] padl_y, padr_y;  // vertical position of left and right paddles
+  logic [9:0] padl_y, padr_y;
 
   logic ball, padl, padr;
+
+  logic coll_l, coll_r, o_coll_l, o_coll_r;
+
+  oneShot oneShotCollL (
+      .clk(clk_pix),
+      .in (coll_l),
+      .out(o_coll_l)
+  );
+
+  oneShot oneShotCollR (
+      .clk(clk_pix),
+      .in (coll_r),
+      .out(o_coll_r)
+  );
+
+  ScoreCounter scoreCounterL (
+      .clk(clk_pix),
+      .reset(reset),
+      .enable(o_coll_r),
+      .count(score_l)
+  );
+
+  ScoreCounter scoreCounterR (
+      .clk(clk_pix),
+      .reset(reset),
+      .enable(o_coll_l),
+      .count(score_r)
+  );
 
   enum {
     NEW_GAME,
@@ -103,32 +131,32 @@ module Pong (
     if (reset) state <= NEW_GAME;
   end
 
-  // Player paddle control
   always_ff @(posedge clk_pix) begin
     if (state == POSITION) padl_y <= (V_RES - PAD_HEIGHT) / 2;
     else if (frame && state == PLAY) begin
       if (sig_1dn) begin
-        if (padl_y + PAD_HEIGHT + PAD_SPY >= V_RES - 1) begin  // bottom of screen?
-          padl_y <= V_RES - PAD_HEIGHT - 1;  // move down as far as we can
-        end else padl_y <= padl_y + PAD_SPY;  // move down
+        if (padl_y + PAD_HEIGHT + PAD_SPY >= V_RES - 1) begin
+          padl_y <= V_RES - PAD_HEIGHT - 1;
+        end else padl_y <= padl_y + PAD_SPY;
       end else if (sig_1up) begin
-        if (padl_y < PAD_SPY) begin  // top of screen
-          padl_y <= 0;  // move up as far as we can
-        end else padl_y <= padl_y - PAD_SPY;  // move up
+        if (padl_y < PAD_SPY) begin
+          padl_y <= 0;
+        end else padl_y <= padl_y - PAD_SPY;
       end
     end
   end
+
   always_ff @(posedge clk_pix) begin
     if (state == POSITION) padr_y <= (V_RES - PAD_HEIGHT) / 2;
     else if (frame && state == PLAY) begin
       if (sig_2dn) begin
-        if (padr_y + PAD_HEIGHT + PAD_SPY >= V_RES - 1) begin  // bottom of screen?
-          padr_y <= V_RES - PAD_HEIGHT - 1;  // move down as far as we can
-        end else padr_y <= padr_y + PAD_SPY;  // move down
+        if (padr_y + PAD_HEIGHT + PAD_SPY >= V_RES - 1) begin
+          padr_y <= V_RES - PAD_HEIGHT - 1;
+        end else padr_y <= padr_y + PAD_SPY;
       end else if (sig_2up) begin
-        if (padr_y < PAD_SPY) begin  // top of screen
-          padr_y <= 0;  // move up as far as we can
-        end else padr_y <= padr_y - PAD_SPY;  // move up
+        if (padr_y < PAD_SPY) begin
+          padr_y <= 0;
+        end else padr_y <= padr_y - PAD_SPY;
       end
     end
   end
@@ -136,51 +164,47 @@ module Pong (
   always_ff @(posedge clk_pix) begin
     case (state)
       POSITION: begin
-        coll_l   <= 0;  // reset screen collision flags
+        coll_l   <= 0;
         coll_r   <= 0;
-        ball_spx <= BALL_ISPX;  // reset speed
+        ball_spx <= BALL_ISPX;
         ball_spy <= BALL_ISPY;
 
-        // centre ball vertically and position on paddle (right or left)
         ball_y   <= (V_RES - BALL_SIZE) / 2;
         ball_x   <= (H_RES - BALL_SIZE) / 2;
         if (coll_r) begin
-          ball_dx <= 1;  // move left
+          ball_dx <= 1;
         end else begin
-          ball_dx <= 0;  // move right
+          ball_dx <= 0;
         end
       end
 
       PLAY: begin
         if (frame) begin
-          // horizontal ball position
-          if (ball_dx == 0) begin  // moving right
+          if (ball_dx == 0) begin
             if (ball_x + BALL_SIZE + ball_spx > H_RES - 1) begin
-              ball_x <= H_RES - BALL_SIZE;  // move to edge of screen
+              ball_x <= H_RES - BALL_SIZE;
               coll_r <= 1;
             end else ball_x <= ball_x + ball_spx;
-          end else begin  // moving left
+          end else begin
             if (ball_x < ball_spx) begin
-              ball_x <= 0;  // move to edge of screen
+              ball_x <= 0;
               coll_l <= 1;
             end else ball_x <= ball_x - ball_spx;
           end
 
-          // vertical ball position
-          if (ball_dy == 0) begin  // moving down
-            if (ball_y + BALL_SIZE + ball_spy >= V_RES - 1) ball_dy <= 1;  // move up next frame
+          if (ball_dy == 0) begin
+            if (ball_y + BALL_SIZE + ball_spy >= V_RES - 1) ball_dy <= 1;
             else ball_y <= ball_y + ball_spy;
-          end else begin  // moving up
-            if (ball_y < ball_spy) ball_dy <= 0;  // move down next frame
+          end else begin
+            if (ball_y < ball_spy) ball_dy <= 0;
             else ball_y <= ball_y - ball_spy;
           end
         end
       end
     endcase
 
-    // change direction if ball collides with paddle
-    if (ball && padl && ball_dx == 1) ball_dx <= 0;  // left paddle
-    if (ball && padr && ball_dx == 0) ball_dx <= 1;  // right paddle
+    if (ball && padl && ball_dx == 1) ball_dx <= 0;
+    if (ball && padr && ball_dx == 0) ball_dx <= 1;
   end
 
   always_comb begin
@@ -191,11 +215,21 @@ module Pong (
                && (y >= padr_y) && (y < padr_y + PAD_HEIGHT);
   end
 
+  logic score_pix;
+  ScoreDisplay scoreDisplay (
+      .x(x),
+      .y(y),
+      .score_l(score_l),
+      .score_r(score_r),
+      .pix(score_pix)
+  );
+
   logic [3:0] red, green, blue;
   always_comb begin
-    if (ball) {red, green, blue} = 12'hFFF;
-    else if (padl) {red, green, blue} = 12'hF00;
-    else if (padr) {red, green, blue} = 12'h00F;
+    if (score_pix) {red, green, blue} = 12'hDDD;
+    else if (ball) {red, green, blue} = 12'hFFF;
+    else if (padl) {red, green, blue} = 12'hFFF;
+    else if (padr) {red, green, blue} = 12'hFFF;
     else {red, green, blue} = 12'h111;
 
     if (!de) {red, green, blue} = 12'h0;

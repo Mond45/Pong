@@ -20,7 +20,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module main (
+module Main (
     input clk,
     input PS2Data,
     input PS2Clk,
@@ -56,7 +56,8 @@ module main (
       .onup()
   );
 
-  logic coll_l, coll_r, collL, collR;
+  logic [7:0] scoreL, scoreR;
+  logic [3:0] scoreL_0, scoreL_1, scoreR_0, scoreR_1;
 
   Pong pong (
       .clk_100m(clk),
@@ -71,43 +72,18 @@ module main (
       .vga_r(vgaRed),
       .vga_g(vgaGreen),
       .vga_b(vgaBlue),
-      .coll_l(coll_l),
-      .coll_r(coll_r)
+      .score_l(scoreL),
+      .score_r(scoreR)
   );
-
-  oneShot oneShotL (
-      .clk(clk),
-      .in (coll_l),
-      .out(collL)
-  );
-
-  oneShot oneShotR (
-      .clk(clk),
-      .in (coll_r),
-      .out(collR)
-  );
-
-  logic [7:0] scoreL, scoreR;
-  logic [3:0] scoreL_0, scoreL_1, scoreR_0, scoreR_1;
-
-  always @(posedge clk) begin
-    if (reset) begin
-      scoreL <= 0;
-      scoreR <= 0;
-    end else begin
-      if (collL) scoreR <= scoreR + 1;
-      if (collR) scoreL <= scoreL + 1;
-    end
-  end
 
   always_comb begin
-    scoreL_0 = scoreL / 10;
-    scoreL_1 = scoreL % 10;
-    scoreR_0 = scoreR / 10;
-    scoreR_1 = scoreR % 10;
+    scoreL_0 = scoreL[7:4];
+    scoreL_1 = scoreL[3:0];
+    scoreR_0 = scoreR[7:4];
+    scoreR_1 = scoreR[3:0];
   end
 
-  sevenSegment sevenSeg (
+  SevenSegment sevenSeg (
       .clk(clk),
       .d0 (scoreL_0),
       .d1 (scoreL_1),

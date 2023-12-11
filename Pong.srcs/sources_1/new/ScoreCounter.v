@@ -3,9 +3,9 @@
 // Company: 
 // Engineer: 
 // 
-// Create Date: 07/27/2016 02:04:22 PM
+// Create Date: 12/11/2023 05:31:00 PM
 // Design Name: 
-// Module Name: debouncer
+// Module Name: ScoreCounter
 // Project Name: 
 // Target Devices: 
 // Tool Versions: 
@@ -19,22 +19,23 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-
-module debouncer (
+module ScoreCounter (
     input clk,
-    input I,
-    output reg O
+    input reset,
+    input enable,
+    output logic [7:0] count
 );
-  parameter COUNT_MAX = 255, COUNT_WIDTH = 8;
-  reg [COUNT_WIDTH-1:0] count;
-  reg Iv = 0;
-  always @(posedge clk)
-    if (I == Iv) begin
-      if (count == COUNT_MAX) O <= I;
-      else count <= count + 1'b1;
-    end else begin
-      count <= 'b0;
-      Iv <= I;
-    end
-
+  reg [7:0] cnt;
+  always @(posedge clk) begin
+    if (reset) cnt <= 0;
+    else if (enable) cnt <= cnt + 1;
+  end
+  logic [3:0] l, r;
+  always_comb begin
+    l = cnt / 10;
+    r = cnt % 10;
+  end
+  always_comb begin
+    count = {l, r};
+  end
 endmodule
