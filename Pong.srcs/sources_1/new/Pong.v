@@ -50,8 +50,8 @@ module Pong (
   );
   localparam BALL_SIZE = 8;
   localparam BALL_ISPX = 3;
-  localparam BALL_ISPY = 2;
-  localparam PAD_HEIGHT = 72;
+  localparam BALL_ISPY = 3;
+  localparam PAD_HEIGHT = 70;
   localparam PAD_WIDTH = 10;
   localparam PAD_OFFS = 32;
   localparam PAD_SPY = 3;
