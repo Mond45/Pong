@@ -25,10 +25,6 @@ module main (
     input PS2Data,
     input PS2Clk,
     input btnC,
-    input btnU,
-    input btnL,
-    input btnR,
-    input btnD,
     output logic [3:0] vgaRed,
     output logic [3:0] vgaGreen,
     output logic [3:0] vgaBlue,
@@ -37,16 +33,39 @@ module main (
     output [6:0] seg,
     output [3:0] an
 );
-  logic [7:0] scoreL, scoreR;
+
+  logic wDown, sDown, upDown, downDown, spaceDown;
+
+  InputHandler inputHandler (
+      .clk(clk),
+      .kclk(PS2Clk),
+      .kdata(PS2Data),
+      .wDown(wDown),
+      .sDown(sDown),
+      .upDown(upDown),
+      .downDown(downDown),
+      .spaceDown(spaceDown)
+  );
+
+  logic reset;
+  debounce debounceC (
+      .clk (clk),
+      .in  (btnC),
+      .out (reset),
+      .ondn(),
+      .onup()
+  );
+
   logic coll_l, coll_r, collL, collR;
+
   Pong pong (
       .clk_100m(clk),
-      .reset(0),
-      .btn_fire(btnC),
-      .btn_1up(btnL),
-      .btn_1dn(btnD),
-      .btn_2up(btnU),
-      .btn_2dn(btnR),
+      .reset(reset),
+      .btn_fire(spaceDown),
+      .sig_1up(wDown),
+      .sig_1dn(sDown),
+      .sig_2up(upDown),
+      .sig_2dn(downDown),
       .vga_hsync(Hsync),
       .vga_vsync(Vsync),
       .vga_r(vgaRed),
@@ -68,15 +87,18 @@ module main (
       .out(collR)
   );
 
-  always @(posedge collL) begin
-    scoreR <= scoreR + 1;
-  end
-
-  always @(posedge collR) begin
-    scoreL <= scoreL + 1;
-  end
-
+  logic [7:0] scoreL, scoreR;
   logic [3:0] scoreL_0, scoreL_1, scoreR_0, scoreR_1;
+
+  always @(posedge clk) begin
+    if (reset) begin
+      scoreL <= 0;
+      scoreR <= 0;
+    end else begin
+      if (collL) scoreR <= scoreR + 1;
+      if (collR) scoreL <= scoreL + 1;
+    end
+  end
 
   always_comb begin
     scoreL_0 = scoreL / 10;
