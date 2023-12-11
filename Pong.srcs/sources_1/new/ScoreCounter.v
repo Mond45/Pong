@@ -28,7 +28,7 @@ module ScoreCounter (
   reg [7:0] cnt;
   always @(posedge clk) begin
     if (reset) cnt <= 0;
-    else if (enable) cnt <= cnt + 1;
+    else if (enable) cnt <= (cnt + 1) % 100;
   end
   logic [3:0] l, r;
   always_comb begin

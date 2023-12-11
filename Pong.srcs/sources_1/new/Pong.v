@@ -49,8 +49,8 @@ module Pong (
       .y(y)
   );
   localparam BALL_SIZE = 8;
-  localparam BALL_ISPX = 2;
-  localparam BALL_ISPY = 1;
+  localparam BALL_ISPX = 3;
+  localparam BALL_ISPY = 2;
   localparam PAD_HEIGHT = 72;
   localparam PAD_WIDTH = 10;
   localparam PAD_OFFS = 32;
